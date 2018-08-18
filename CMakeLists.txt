@@ -4,11 +4,6 @@ cmake_minimum_required (VERSION 3.0.2)
 
 project(SWMM)
 
-# Adds a subdirectory to the build. Paths are relative to the directory 
-# containing root CMakeLists.txt file. 
-add_subdirectory(tools/swmm-output)
-add_subdirectory(tests)
-
 
 # Sets for output directory for executables and libraries. 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
@@ -83,3 +78,13 @@ target_compile_definitions(run-swmm PRIVATE CLE=TRUE)
 if(NOT WIN32)
     target_link_libraries(run-swmm PUBLIC m pthread)
 endif(NOT WIN32)
+
+
+# Enable CTest from root CMake build directory
+enable_testing()
+
+
+# Adds a subdirectory to the build. Paths are relative to the directory 
+# containing root CMakeLists.txt file. 
+add_subdirectory(tools/swmm-output)
+add_subdirectory(tests)

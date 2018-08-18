@@ -12,10 +12,6 @@
 cmake_minimum_required (VERSION 3.0)
 
 
-#Setup CMake to run tests
-enable_testing()
-
-
 # Sets for output directory for executables and libraries. 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 

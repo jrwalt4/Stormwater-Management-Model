@@ -38,4 +38,5 @@ generate_export_header(swmm-output
   EXPORT_FILE_NAME swmm_output_export.h
   STATIC_DEFINE SHARED_EXPORTS_BUILT_AS_STATIC)
 
-file(COPY ${CMAKE_CURRENT_BINARY_DIR}/swmm_output_export.h DESTINATION ${CMAKE_CURRENT_SOURCE_DIR}/include)
+# include directory of generated export header
+target_include_directories(swmm-output PRIVATE ${CMAKE_CURRENT_BINARY_DIR})

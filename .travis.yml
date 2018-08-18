@@ -19,10 +19,9 @@ before_script:
   - cmake ..
 
 script:
-  - cmake --build .
+  - cmake --build . --config Release
   # run unit tests
-  - cd tests
-  - ctest
+  - ctest . -C Release
   - cd $SWMM_HOME
   # install dependencies for nrtest
   - pip install --src build/packages -r tools/requirements.txt

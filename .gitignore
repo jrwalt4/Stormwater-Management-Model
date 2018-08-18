@@ -20,6 +20,10 @@
 *.zip
 
 
+# Visual Studio Code Stuff
+.vscode
+
+
 # Build files
 /build/
 *.o
