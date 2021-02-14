@@ -9,7 +9,7 @@
 #
 
 
-find_package(OpenMP REQUIRED)
+find_package(OpenMP)
 
 
 # configure file groups
@@ -67,8 +67,14 @@ target_link_options(swmm5
 target_link_libraries(swmm5
     PUBLIC
         $<$<NOT:$<BOOL:$<C_COMPILER_ID:MSVC>>>:m>
-        $<$<BOOL:OpenMP_C_FOUND>:OpenMP::OpenMP_C>
 )
+
+if(OpenMP_C_Found)
+target_link_libraries(swmm5
+    PUBLIC
+    OpenMP::OpenMP_C
+)
+endif(OpenMP_C_Found)
 
 target_include_directories(swmm5
     PUBLIC
@@ -104,19 +110,19 @@ install(
 
 # TODO: Figure out why this doesn't work for package target
 # When building on MacOS relocate libomp to install package
-if(APPLE)
-    get_filename_component(EXTERN_LIB_PATH ${OpenMP_libomp_LIBRARY} REALPATH)
+# if(APPLE)
+#     get_filename_component(EXTERN_LIB_PATH ${OpenMP_libomp_LIBRARY} REALPATH)
 
-    install(
-        FILES
-            ${EXTERN_LIB_PATH}
-        DESTINATION
-            ${CMAKE_INSTALL_PREFIX}/extern
-    )
+#     install(
+#         FILES
+#             ${EXTERN_LIB_PATH}
+#         DESTINATION
+#             ${CMAKE_INSTALL_PREFIX}/extern
+#     )
 
-    # Pass the var up the project tree
-    set(EXTERN_LIB_PATH ${EXTERN_LIB_PATH} PARENT_SCOPE)
-endif()
+#     # Pass the var up the project tree
+#     set(EXTERN_LIB_PATH ${EXTERN_LIB_PATH} PARENT_SCOPE)
+# endif()
 
 
 # copy swmm5 to build tree for testing
