@@ -43,6 +43,15 @@
 #define  RECT_ROUND_ALFMAX  0.98
 
 #define  DECL_XSECT_VTBL(type) \
+double type##_getSofA(TXsect* xsect, double a);\
+double type##_getYofA(TXsect* xsect, double a);\
+double type##_getRofA(TXsect* xsect, double a);\
+double type##_getAofS(TXsect* xsect, double s);\
+double type##_getdSdA(TXsect* xsect, double a);\
+double type##_getAofY(TXsect* xsect, double y);\
+double type##_getRofY(TXsect* xsect, double y);\
+double type##_getWofY(TXsect* xsect, double y);\
+double type##_getYcrit(TXsect* xsect, double q);\
 static XsectVtbl xsect_vtbl_##type = {\
   .getSofA = type##_getSofA,\
   .getYofA = type##_getYofA,\
@@ -127,28 +136,13 @@ static double generic_getdSdA(TXsect* xsect, double a);
 static double lookup(double x, double *table, int nItems);
 static double invLookup(double y, double *table, int nItems);
 static int    locate(double y, double *table, int nItems);
+static double generic_getYcrit(TXsect* xsect, double q);
 
-static double rect_closed_getSofA(TXsect* xsect, double a);
-static double rect_closed_getYofA(TXsect* xsect, double a);
-static double rect_closed_getdSdA(TXsect* xsect, double a);
-static double rect_closed_getRofA(TXsect* xsect, double a);
-static double rect_closed_getAofY(TXsect* xsect, double y);
-static double rect_closed_getRofY(TXsect* xsect, double y);
-static double rect_closed_getWofY(TXsect* xsect, double y);
-static double rect_closed_getAofS(TXsect* xsect, double s);
-static double rect_closed_getYcrit(TXsect* xsect, double q);
 DECL_XSECT_VTBL( rect_closed )
 
-static double rect_open_getSofA(TXsect* xsect, double a);
-static double rect_open_getdSdA(TXsect* xsect, double a);
+DECL_XSECT_VTBL( rect_open )
 
-static double rect_triang_getYofA(TXsect* xsect, double a);
-static double rect_triang_getRofA(TXsect* xsect, double a);
-static double rect_triang_getSofA(TXsect* xsect, double a);
-static double rect_triang_getdSdA(TXsect* xsect, double a);
-static double rect_triang_getAofY(TXsect* xsect, double y);
-static double rect_triang_getRofY(TXsect* xsect, double y);
-static double rect_triang_getWofY(TXsect* xsect, double y);
+DECL_XSECT_VTBL( rect_triang )
 
 static double rect_round_getYofA(TXsect* xsect, double a);
 static double rect_round_getRofA(TXsect* xsect, double a);
@@ -401,6 +395,7 @@ int xsect_setParams(TXsect *xsect, int type, double p[], double ucf)
         xsect->sFull = xsect->aFull * pow(xsect->rFull, 2./3.);
         xsect->sMax  = xsect->sFull;
         xsect->ywMax = xsect->yFull;
+        xsect->vtbl = &xsect_vtbl_rect_open;
         break;
 
     case RECT_TRIANG:
@@ -425,6 +420,7 @@ int xsect_setParams(TXsect *xsect, int type, double p[], double ucf)
         xsect->sFull = xsect->aFull * pow(xsect->rFull, 2./3.);
         aMax = RECT_TRIANG_ALFMAX * xsect->aFull;
         xsect->sMax  = aMax * pow(rect_triang_getRofA(xsect, aMax), 2./3.);
+        xsect->vtbl  = &xsect_vtbl_rect_triang;
         break;
 
     case RECT_ROUND:
@@ -775,12 +771,6 @@ double xsect_getSofA(TXsect *xsect, double a)
       case SEMICIRCULAR:
         return xsect->sFull * lookup(alpha, S_SemiCirc, N_S_SemiCirc);
 
-      case RECT_OPEN:
-        return rect_open_getSofA(xsect, a);
-
-      case RECT_TRIANG:
-        return rect_triang_getSofA(xsect, a);
-
       case RECT_ROUND:
         return rect_round_getSofA(xsect, a);
 
@@ -853,11 +843,7 @@ double xsect_getYofA(TXsect *xsect, double a)
       case ARCH:
         return xsect->yFull * invLookup(alpha, A_Arch, N_A_Arch);
 
-      case RECT_TRIANG: return rect_triang_getYofA(xsect, a);
-
       case RECT_ROUND:  return rect_round_getYofA(xsect, a);
-
-      case RECT_OPEN:   return a / xsect->wMax;
 
       case MOD_BASKET:  return mod_basket_getYofA(xsect, a);
 
@@ -936,11 +922,7 @@ double xsect_getAofY(TXsect *xsect, double y)
         return xsect->aFull * lookup(yNorm,
             Shape[Curve[xsect->transect].refersTo].areaTbl, N_SHAPE_TBL);
 
-      case RECT_TRIANG: return rect_triang_getAofY(xsect, y);
-
       case RECT_ROUND:  return rect_round_getAofY(xsect, y);
-
-      case RECT_OPEN:   return y * xsect->wMax;
 
       case MOD_BASKET:  return mod_basket_getAofY(xsect, y);
 
@@ -1019,11 +1001,7 @@ double xsect_getWofY(TXsect *xsect, double y)
         return xsect->wMax * lookup(yNorm,
             Shape[Curve[xsect->transect].refersTo].widthTbl, N_SHAPE_TBL);
 
-      case RECT_TRIANG: return rect_triang_getWofY(xsect, y);
-
       case RECT_ROUND:  return rect_round_getWofY(xsect, y);
-
-      case RECT_OPEN:   return xsect->wMax;
 
       case MOD_BASKET:  return mod_basket_getWofY(xsect, y);
 
@@ -1091,8 +1069,6 @@ double xsect_getRofY(TXsect *xsect, double y)
         return xsect->rFull * lookup(yNorm,
             Shape[Curve[xsect->transect].refersTo].hradTbl, N_SHAPE_TBL);
 
-      case RECT_TRIANG:  return rect_triang_getRofY(xsect, y);
-
       case RECT_ROUND:   return rect_round_getRofY(xsect, y);
 
       case TRAPEZOIDAL:  return trapez_getRofY(xsect, y);
@@ -1132,11 +1108,6 @@ double xsect_getRofA(TXsect *xsect, double a)
       case FILLED_CIRCULAR:
       case CUSTOM:
         return xsect_getRofY( xsect, xsect_getYofA(xsect, a) );
-
-      case RECT_OPEN:    return a / (xsect->wMax +
-                             (2. - xsect->sBot) * a / xsect->wMax);
-
-      case RECT_TRIANG:  return rect_triang_getRofA(xsect, a);
 
       case RECT_ROUND:   return rect_round_getRofA(xsect, a);
 
@@ -1248,12 +1219,6 @@ double xsect_getdSdA(TXsect* xsect, double a)
       case SEMICIRCULAR:
         return  tabular_getdSdA(xsect, a, S_SemiCirc, N_S_SemiCirc);
 
-      case RECT_OPEN:
-        return rect_open_getdSdA(xsect, a);
-
-      case RECT_TRIANG:
-	return rect_triang_getdSdA(xsect, a);
-
       case RECT_ROUND:
 	return rect_round_getdSdA(xsect, a);
 
@@ -1292,12 +1257,6 @@ double xsect_getYcrit(TXsect* xsect, double q)
     {
       case DUMMY:
         return 0.0;
-
-      case RECT_CLOSED:
-        // --- analytical expression for yCritical is
-        //     y = (q2g / w^2)^(1/3) where w = width
-        y = pow(q2g / SQR(xsect->wMax), 1./3.);
-        break;
 
       case TRIANGULAR:
         // --- analytical expression for yCritical is
@@ -1733,6 +1692,27 @@ double getYcritRidder(TXsect* xsect, double q, double y0)
     return yc;
 }
 
+double generic_getYcrit(TXsect* xsect, double q)
+{
+    double q2g = SQR(q) / GRAVITY;
+    double y, r;
+    // --- first estimate yCritical for an equivalent circular conduit
+    //     using 1.01 * (q2g / yFull)^(1/4)
+    y = 1.01 * pow(q2g / xsect->yFull, 1./4.);
+    if (y >= xsect->yFull) y = 0.97 * xsect->yFull;
+
+    // --- then find ratio of conduit area to equiv. circular area
+    r = xsect->aFull / (PI / 4.0 * SQR(xsect->yFull));
+
+    // --- use interval enumeration method to find yCritical if
+    //     area ratio not too far from 1.0
+    if ( r >= 0.5 && r <= 2.0 )
+        y = getYcritEnum(xsect, q, y);
+
+    // --- otherwise use Ridder's root finding method
+    else y = getYcritRidder(xsect, q, y);
+    return y;
+}
 
 //=============================================================================
 //  RECT_CLOSED fuctions
@@ -1782,7 +1762,7 @@ double rect_closed_getdSdA(TXsect* xsect, double a)
 
     // --- otherwise evaluate dSdA = [5/3 - (2/3)(dP/dA)R]R^(2/3)
     //     (where P = wetted perimeter & dPdA = 2/width)
-    r = xsect_getRofA(xsect, a);
+    r = rect_closed_getRofA(xsect, a);
     return  (5./3. - (2./3.) * (2.0/xsect->wMax) * r) * pow(r, 2./3.);
 }
 
@@ -1836,7 +1816,27 @@ double rect_open_getSofA(TXsect* xsect, double a)
 
 double rect_open_getYofA(TXsect* xsect, double a)
 {
-  return a / xsect->wMax;
+    return rect_closed_getYofA(xsect, a);
+}
+
+double rect_open_getAofY(TXsect* xsect, double y)
+{
+    return rect_closed_getYofA(xsect, y);
+}
+
+double rect_open_getWofY(TXsect* xsect, double y)
+{
+    return xsect->wMax;
+}
+
+double rect_open_getRofY(TXsect* xsect, double y)
+{
+    return rect_open_getRofA(xsect, rect_open_getAofY(xsect, y));
+}
+
+double rect_open_getRofA(TXsect* xsect, double a)
+{
+    return a / (xsect->wMax + (2. - xsect->sBot) * a / xsect->wMax);
 }
 
 double rect_open_getdSdA(TXsect* xsect, double a)
@@ -1853,6 +1853,15 @@ double rect_open_getdSdA(TXsect* xsect, double a)
     return  (5./3. - (2./3.) * dPdA * r) * pow(r, 2./3.);
 }
 
+double rect_open_getAofS(TXsect *xsect, double s)
+{
+    return generic_getAofS(xsect, s);
+}
+
+double rect_open_getYcrit(TXsect* xsect, double q)
+{
+    return rect_closed_getYcrit(xsect, q);
+}
 
 //=============================================================================
 //  RECT_TRIANG fuctions
@@ -1954,6 +1963,15 @@ double rect_triang_getWofY(TXsect* xsect, double y)
     else return xsect->wMax;                               // above bottom section
 }
 
+double rect_triang_getAofS(TXsect* xsect, double s)
+{
+    return generic_getAofS(xsect, s);
+}
+
+double rect_triang_getYcrit(TXsect* xsect, double q)
+{
+    return generic_getYcrit(xsect, q);
+}
 
 //=============================================================================
 //  RECT_ROUND fuctions
