@@ -144,13 +144,7 @@ DECL_XSECT_VTBL( rect_open )
 
 DECL_XSECT_VTBL( rect_triang )
 
-static double rect_round_getYofA(TXsect* xsect, double a);
-static double rect_round_getRofA(TXsect* xsect, double a);
-static double rect_round_getSofA(TXsect* xsect, double a);
-static double rect_round_getdSdA(TXsect* xsect, double a);
-static double rect_round_getAofY(TXsect* xsect, double y);
-static double rect_round_getRofY(TXsect* xsect, double y);
-static double rect_round_getWofY(TXsect* xsect, double y);
+DECL_XSECT_VTBL( rect_round )
 
 static double mod_basket_getYofA(TXsect* xsect, double a);
 static double mod_basket_getRofA(TXsect* xsect, double a);
@@ -451,6 +445,7 @@ int xsect_setParams(TXsect *xsect, int type, double p[], double ucf)
         xsect->sFull = xsect->aFull * pow(xsect->rFull, 2./3.);
         aMax = RECT_ROUND_ALFMAX * xsect->aFull;
         xsect->sMax = aMax * pow(rect_round_getRofA(xsect, aMax), 2./3.);
+        xsect->vtbl  = &xsect_vtbl_rect_round;
         break;
 
     case MOD_BASKET:
@@ -771,9 +766,6 @@ double xsect_getSofA(TXsect *xsect, double a)
       case SEMICIRCULAR:
         return xsect->sFull * lookup(alpha, S_SemiCirc, N_S_SemiCirc);
 
-      case RECT_ROUND:
-        return rect_round_getSofA(xsect, a);
-
       default:
         if (a == 0.0) return 0.0;
         r = xsect_getRofA(xsect, a);
@@ -842,8 +834,6 @@ double xsect_getYofA(TXsect *xsect, double a)
 
       case ARCH:
         return xsect->yFull * invLookup(alpha, A_Arch, N_A_Arch);
-
-      case RECT_ROUND:  return rect_round_getYofA(xsect, a);
 
       case MOD_BASKET:  return mod_basket_getYofA(xsect, a);
 
@@ -922,8 +912,6 @@ double xsect_getAofY(TXsect *xsect, double y)
         return xsect->aFull * lookup(yNorm,
             Shape[Curve[xsect->transect].refersTo].areaTbl, N_SHAPE_TBL);
 
-      case RECT_ROUND:  return rect_round_getAofY(xsect, y);
-
       case MOD_BASKET:  return mod_basket_getAofY(xsect, y);
 
       case TRAPEZOIDAL: return trapez_getAofY(xsect, y);
@@ -1001,8 +989,6 @@ double xsect_getWofY(TXsect *xsect, double y)
         return xsect->wMax * lookup(yNorm,
             Shape[Curve[xsect->transect].refersTo].widthTbl, N_SHAPE_TBL);
 
-      case RECT_ROUND:  return rect_round_getWofY(xsect, y);
-
       case MOD_BASKET:  return mod_basket_getWofY(xsect, y);
 
       case TRAPEZOIDAL: return trapez_getWofY(xsect, y);
@@ -1069,8 +1055,6 @@ double xsect_getRofY(TXsect *xsect, double y)
         return xsect->rFull * lookup(yNorm,
             Shape[Curve[xsect->transect].refersTo].hradTbl, N_SHAPE_TBL);
 
-      case RECT_ROUND:   return rect_round_getRofY(xsect, y);
-
       case TRAPEZOIDAL:  return trapez_getRofY(xsect, y);
 
       case TRIANGULAR:   return triang_getRofY(xsect, y);
@@ -1108,8 +1092,6 @@ double xsect_getRofA(TXsect *xsect, double a)
       case FILLED_CIRCULAR:
       case CUSTOM:
         return xsect_getRofY( xsect, xsect_getYofA(xsect, a) );
-
-      case RECT_ROUND:   return rect_round_getRofA(xsect, a);
 
       case MOD_BASKET:   return mod_basket_getRofA(xsect, a);
 
@@ -1218,9 +1200,6 @@ double xsect_getdSdA(TXsect* xsect, double a)
 
       case SEMICIRCULAR:
         return  tabular_getdSdA(xsect, a, S_SemiCirc, N_S_SemiCirc);
-
-      case RECT_ROUND:
-	return rect_round_getdSdA(xsect, a);
 
       case MOD_BASKET:
 	return mod_basket_getdSdA(xsect, a);
@@ -2113,6 +2092,15 @@ double rect_round_getWofY(TXsect* xsect, double y)
     return 2.0 * sqrt( y * (2.0*xsect->rBot - y) );
 }
 
+double rect_round_getAofS(TXsect* xsect, double s)
+{
+    return generic_getAofS(xsect, s);
+}
+
+double rect_round_getYcrit(TXsect* xsect, double q)
+{
+    return generic_getYcrit(xsect, q);
+}
 
 //=============================================================================
 //  MOD_BASKETHANDLE fuctions
