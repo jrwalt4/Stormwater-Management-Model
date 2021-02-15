@@ -110,7 +110,7 @@ typedef struct
 {
    char*         ID;              // raingage name
    double		 externalRain;    // rainfall-rate injected RAIN API
-   int           dataSource;      // data from time series or file 
+   int           dataSource;      // data from time series or file
    int           tSeries;         // rainfall data time series index
    char          fname[MAXFNAME+1]; // name of rainfall data file
    char          staID[MAXMSG+1]; // station number
@@ -134,7 +134,7 @@ typedef struct
    double        reportRainfall;  // rainfall value used for reported results
    int           coGage;          // index of gage with same rain timeseries
    int           isUsed;          // TRUE if gage used by any subcatchment
-   int           isCurrent;       // TRUE if gage's rainfall is current 
+   int           isCurrent;       // TRUE if gage's rainfall is current
 }  TGage;
 
 //-------------------
@@ -142,7 +142,7 @@ typedef struct
 //-------------------
 typedef struct
 {
-   int           dataSource;      // data from time series or file 
+   int           dataSource;      // data from time series or file
    int           tSeries;         // temperature data time series index
    DateTime      fileStartDate;   // starting date of data read from file
    double        elev;            // elev. of study area (ft)
@@ -190,11 +190,11 @@ typedef struct
     int          tSeries;         // time series index
     double       monthlyEvap[12]; // monthly evaporation values
     double       panCoeff[12];    // monthly pan coeff. values
-    int          recoveryPattern; // soil recovery factor pattern 
+    int          recoveryPattern; // soil recovery factor pattern
     int          dryOnly;         // true if evaporation only in dry periods
     //----------------------------
     double       rate;            // current evaporation rate (ft/sec)
-    double       recoveryFactor;  // current soil recovery factor 
+    double       recoveryFactor;  // current soil recovery factor
 }   TEvap;
 
 //-------------------
@@ -262,7 +262,7 @@ typedef struct
 //------------------------
 typedef struct
 {
-    int           aquifer;        // index of associated gw aquifer 
+    int           aquifer;        // index of associated gw aquifer
     int           node;           // index of node receiving gw flow
     double        surfElev;       // elevation of ground surface (ft)
     double        a1, b1;         // ground water outflow coeff. & exponent
@@ -390,7 +390,7 @@ typedef struct
    double        lidArea;         // area devoted to LIDs (ft2)
    double        rainfall;        // current rainfall (ft/sec)
    double        evapLoss;        // current evap losses (ft/sec)
-   double        infilLoss;       // current infil losses (ft/sec) 
+   double        infilLoss;       // current infil losses (ft/sec)
    double        runon;           // runon from other subcatchments (cfs)
    double        oldRunoff;       // previous runoff (cfs)
    double        newRunoff;       // current runoff (cfs)
@@ -544,7 +544,7 @@ typedef struct
    TExfil*     exfil;             // ptr. to exfiltration object
    //-----------------------------
    double      hrt;               // hydraulic residence time (sec)
-   double      evapLoss;          // evaporation loss (ft3) 
+   double      evapLoss;          // evaporation loss (ft3)
    double      exfilLoss;         // exfiltration loss (ft3)
 }  TStorage;
 
@@ -565,6 +565,8 @@ typedef struct
 //-----------------------------
 // CROSS SECTION DATA STRUCTURE
 //-----------------------------
+// forward declare Xsect virtual method table
+typedef struct XsectVtbl_s XsectVtbl;
 typedef struct
 {
    int           type;            // type code of cross section shape
@@ -583,7 +585,26 @@ typedef struct
    double        aBot;            // area of bottom section
    double        sBot;            // slope of bottom section
    double        rBot;            // radius of bottom section
+
+   // virtual table for xsect methods
+   XsectVtbl*  vtbl;
 }  TXsect;
+
+//--------------------------------------
+// CROSS SECTION VIRTUAL METHOD TABLE
+//--------------------------------------
+// see above forward declaration
+struct XsectVtbl_s {
+   double        (*getSofA)(TXsect* xsect, double area);
+   double        (*getYofA)(TXsect* xsect, double area);
+   double        (*getRofA)(TXsect* xsect, double area);
+   double        (*getAofS)(TXsect* xsect, double sFactor);
+   double        (*getdSdA)(TXsect* xsect, double area);
+   double        (*getAofY)(TXsect* xsect, double y);
+   double        (*getRofY)(TXsect* xsect, double y);
+   double        (*getWofY)(TXsect* xsect, double y);
+   double        (*getYcrit)(TXsect* xsect, double q);
+};
 
 //--------------------------------------
 // CROSS SECTION TRANSECT DATA STRUCTURE
@@ -596,10 +617,10 @@ typedef struct
     double       aFull;                     // area when full (ft2)
     double       rFull;                     // hyd. radius when full (ft)
     double       wMax;                      // width at widest point (ft)
-    double       ywMax;                     // depth at max width (ft) 
+    double       ywMax;                     // depth at max width (ft)
     double       sMax;                      // section factor at max. flow (ft^4/3)
     double       aMax;                      // area at max. flow (ft2)
-    double       lengthFactor;              // floodplain / channel length 
+    double       lengthFactor;              // floodplain / channel length
     //--------------------------------------
     double       roughness;                 // Manning's n
     double       areaTbl[N_TRANSECT_TBL];   // table of area v. depth
@@ -616,7 +637,7 @@ typedef struct
 {
     int          curve;                     // index of shape curve
     int          nTbl;                      // size of geometry tables
-    double       aFull;                     // area when full 
+    double       aFull;                     // area when full
     double       rFull;                     // hyd. radius when full
     double       wMax;                      // max. width
     double       sMax;                      // max. section factor
@@ -704,10 +725,10 @@ typedef struct
 {
    int           type;            // pump type
    int           pumpCurve;       // pump curve table index
-   double        initSetting;     // initial speed setting 
+   double        initSetting;     // initial speed setting
    double        yOn;             // startup depth (ft)
    double        yOff;            // shutoff depth (ft)
-   double        xMin;            // minimum pt. on pump curve 
+   double        xMin;            // minimum pt. on pump curve
    double        xMax;            // maximum pt. on pump curve
 }  TPump;
 
@@ -838,7 +859,7 @@ typedef struct
 //-------------------------------
 // typedef struct
 // {                                 // All volume totals are in ft3.
-//    double        rainfall;        // rainfall volume 
+//    double        rainfall;        // rainfall volume
 //    double        evap;            // evaporation loss
 //    double        infil;           // infiltration loss
 //    double        runoff;          // runoff volume
@@ -941,7 +962,7 @@ typedef struct
 //     double       evap;
 //     double       infil;
 //     double       runoff;
-//     double       maxFlow;         
+//     double       maxFlow;
 // 	double       impervRunoff;                                                 //(5.1.013)
 // 	double       pervRunoff;                                                   //
 // }  TSubcatchStats;
@@ -995,13 +1016,13 @@ typedef SM_StorageStats TStorageStats;
 // {
 //    double       avgFlow;
 //    double       maxFlow;
-//    double*      totalLoad;   
+//    double*      totalLoad;
 //    int          totalPeriods;
 // }  TOutfallStats;
 
 typedef SM_OutfallStats TOutfallStats;
 
-//---------------- 
+//----------------
 // PUMP STATISTICS
 //----------------
 // typedef struct
@@ -1052,14 +1073,14 @@ typedef struct
    int           objType;         // either NODE or LINK
    int           index;           // node or link index
    double        value;           // value of node or link statistic
-}  TMaxStats; 
+}  TMaxStats;
 
 //------------------
 // REPORT FIELD INFO
 //------------------
-typedef struct 
+typedef struct
 {
-   char          Name[80];        // name of reported variable 
+   char          Name[80];        // name of reported variable
    char          Units[80];       // units of reported variable
    char          Enabled;         // TRUE if appears in report table
    int           Precision;       // number of decimal places when reported

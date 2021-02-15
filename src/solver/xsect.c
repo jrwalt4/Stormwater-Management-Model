@@ -42,6 +42,19 @@
 #define  RECT_TRIANG_ALFMAX 0.98
 #define  RECT_ROUND_ALFMAX  0.98
 
+#define  DECL_XSECT_VTBL(type) \
+static XsectVtbl xsect_vtbl_##type = {\
+  .getSofA = type##_getSofA,\
+  .getYofA = type##_getYofA,\
+  .getRofA = type##_getRofA,\
+  .getAofS = type##_getAofS,\
+  .getdSdA = type##_getdSdA,\
+  .getAofY = type##_getAofY,\
+  .getRofY = type##_getRofY,\
+  .getWofY = type##_getWofY,\
+  .getYcrit= type##_getYcrit,\
+};
+
 #include "xsect.dat"    // File containing geometry tables for rounded shapes
 
 //-----------------------------------------------------------------------------
@@ -116,8 +129,15 @@ static double invLookup(double y, double *table, int nItems);
 static int    locate(double y, double *table, int nItems);
 
 static double rect_closed_getSofA(TXsect* xsect, double a);
+static double rect_closed_getYofA(TXsect* xsect, double a);
 static double rect_closed_getdSdA(TXsect* xsect, double a);
 static double rect_closed_getRofA(TXsect* xsect, double a);
+static double rect_closed_getAofY(TXsect* xsect, double y);
+static double rect_closed_getRofY(TXsect* xsect, double y);
+static double rect_closed_getWofY(TXsect* xsect, double y);
+static double rect_closed_getAofS(TXsect* xsect, double s);
+static double rect_closed_getYcrit(TXsect* xsect, double q);
+DECL_XSECT_VTBL( rect_closed )
 
 static double rect_open_getSofA(TXsect* xsect, double a);
 static double rect_open_getdSdA(TXsect* xsect, double a);
@@ -221,6 +241,7 @@ int xsect_setParams(TXsect *xsect, int type, double p[], double ucf)
 
     if ( type != DUMMY && p[0] <= 0.0 ) return FALSE;
     xsect->type  = type;
+    xsect->vtbl = NULL;
     switch ( xsect->type )
     {
     case DUMMY:
@@ -365,6 +386,7 @@ int xsect_setParams(TXsect *xsect, int type, double p[], double ucf)
         aMax = RECT_ALFMAX * xsect->aFull;
         xsect->sMax = aMax * pow(rect_closed_getRofA(xsect, aMax), 2./3.);
         xsect->ywMax = xsect->yFull;
+        xsect->vtbl = &xsect_vtbl_rect_closed;
         break;
 
     case RECT_OPEN:
@@ -720,6 +742,10 @@ double xsect_getSofA(TXsect *xsect, double a)
 //  Purpose: computes xsection's section factor at a given area.
 //
 {
+    if(NULL != xsect->vtbl)
+    {
+      return xsect->vtbl->getSofA(xsect, a);
+    }
     double alpha = a / xsect->aFull;
     double r;
     switch ( xsect->type )
@@ -749,9 +775,6 @@ double xsect_getSofA(TXsect *xsect, double a)
       case SEMICIRCULAR:
         return xsect->sFull * lookup(alpha, S_SemiCirc, N_S_SemiCirc);
 
-      case RECT_CLOSED:
-        return rect_closed_getSofA(xsect, a);
-
       case RECT_OPEN:
         return rect_open_getSofA(xsect, a);
 
@@ -779,6 +802,10 @@ double xsect_getYofA(TXsect *xsect, double a)
 //  Purpose: computes xsection's depth at a given area.
 //
 {
+    if(NULL != xsect->vtbl)
+    {
+      return xsect->vtbl->getYofA(xsect, a);
+    }
     double alpha = a / xsect->aFull;
     switch ( xsect->type )
     {
@@ -826,8 +853,6 @@ double xsect_getYofA(TXsect *xsect, double a)
       case ARCH:
         return xsect->yFull * invLookup(alpha, A_Arch, N_A_Arch);
 
-      case RECT_CLOSED: return a / xsect->wMax;
-
       case RECT_TRIANG: return rect_triang_getYofA(xsect, a);
 
       case RECT_ROUND:  return rect_round_getYofA(xsect, a);
@@ -860,6 +885,10 @@ double xsect_getAofY(TXsect *xsect, double y)
 {
     double yNorm = y / xsect->yFull;
     if ( y <= 0.0 ) return 0.0;
+    if(NULL != xsect->vtbl)
+    {
+      return xsect->vtbl->getAofY(xsect, y);
+    }
     switch ( xsect->type )
     {
       case FORCE_MAIN:
@@ -907,8 +936,6 @@ double xsect_getAofY(TXsect *xsect, double y)
         return xsect->aFull * lookup(yNorm,
             Shape[Curve[xsect->transect].refersTo].areaTbl, N_SHAPE_TBL);
 
-     case RECT_CLOSED:  return y * xsect->wMax;
-
       case RECT_TRIANG: return rect_triang_getAofY(xsect, y);
 
       case RECT_ROUND:  return rect_round_getAofY(xsect, y);
@@ -939,6 +966,10 @@ double xsect_getWofY(TXsect *xsect, double y)
 //  Purpose: computes xsection's top width at a given depth.
 //
 {
+    if(NULL != xsect->vtbl)
+    {
+      return xsect->vtbl->getWofY(xsect, y);
+    }
     double yNorm = y / xsect->yFull;
     switch ( xsect->type )
     {
@@ -988,10 +1019,6 @@ double xsect_getWofY(TXsect *xsect, double y)
         return xsect->wMax * lookup(yNorm,
             Shape[Curve[xsect->transect].refersTo].widthTbl, N_SHAPE_TBL);
 
-      case RECT_CLOSED: 
-          if (yNorm == 1.0) return 0.0;                                        //(5.1.013)
-          return xsect->wMax;
-
       case RECT_TRIANG: return rect_triang_getWofY(xsect, y);
 
       case RECT_ROUND:  return rect_round_getWofY(xsect, y);
@@ -1022,6 +1049,10 @@ double xsect_getRofY(TXsect *xsect, double y)
 //  Purpose: computes xsection's hydraulic radius at a given depth.
 //
 {
+    if(NULL != xsect->vtbl)
+    {
+      return xsect->vtbl->getRofY(xsect, y);
+    }
     double yNorm = y / xsect->yFull;
     switch ( xsect->type )
     {
@@ -1086,6 +1117,10 @@ double xsect_getRofA(TXsect *xsect, double a)
 //  Purpose: computes xsection's hydraulic radius at a given area.
 //
 {
+    if(NULL != xsect->vtbl)
+    {
+      return xsect->vtbl->getRofA(xsect, a);
+    }
     double cathy;
     if ( a <= 0.0 ) return 0.0;
     switch ( xsect->type )
@@ -1097,8 +1132,6 @@ double xsect_getRofA(TXsect *xsect, double a)
       case FILLED_CIRCULAR:
       case CUSTOM:
         return xsect_getRofY( xsect, xsect_getYofA(xsect, a) );
-
-      case RECT_CLOSED:  return rect_closed_getRofA(xsect, a);
 
       case RECT_OPEN:    return a / (xsect->wMax +
                              (2. - xsect->sBot) * a / xsect->wMax);
@@ -1134,6 +1167,10 @@ double xsect_getAofS(TXsect* xsect, double s)
 //  Purpose: computes xsection's area at a given section factor.
 //
 {
+    if(NULL != xsect->vtbl)
+    {
+      return xsect->vtbl->getAofS(xsect, s);
+    }
     double psi = s / xsect->sFull;
     if ( s <= 0.0 ) return 0.0;
     if ( s > xsect->sMax ) s = xsect->sMax;
@@ -1180,6 +1217,10 @@ double xsect_getdSdA(TXsect* xsect, double a)
 //           respect to area at a given area.
 //
 {
+    if(NULL != xsect->vtbl)
+    {
+      return xsect->vtbl->getdSdA(xsect, a);
+    }
     switch ( xsect->type )
     {
       case FORCE_MAIN:
@@ -1206,9 +1247,6 @@ double xsect_getdSdA(TXsect* xsect, double a)
 
       case SEMICIRCULAR:
         return  tabular_getdSdA(xsect, a, S_SemiCirc, N_S_SemiCirc);
-
-      case RECT_CLOSED:
-        return rect_closed_getdSdA(xsect, a);
 
       case RECT_OPEN:
         return rect_open_getdSdA(xsect, a);
@@ -1246,12 +1284,15 @@ double xsect_getYcrit(TXsect* xsect, double q)
     double y, r;
 
     if ( q2g == 0.0 ) return 0.0;
+    if(NULL != xsect->vtbl)
+    {
+      y = xsect->vtbl->getYcrit(xsect, q);
+    } else {
     switch ( xsect->type )
     {
       case DUMMY:
         return 0.0;
 
-      case RECT_OPEN:
       case RECT_CLOSED:
         // --- analytical expression for yCritical is
         //     y = (q2g / w^2)^(1/3) where w = width
@@ -1292,6 +1333,7 @@ double xsect_getYcrit(TXsect* xsect, double q)
 
         // --- otherwise use Ridder's root finding method
         else y = getYcritRidder(xsect, q, y);
+    }
     }
 
     // --- do not allow yCritical to be > yFull
@@ -1711,6 +1753,16 @@ double rect_closed_getSofA(TXsect* xsect, double a)
     return a * pow(xsect_getRofA(xsect, a), 2./3.);
 }
 
+double rect_closed_getYofA(TXsect* xsect, double a)
+{
+    return a / xsect->wMax;
+}
+
+double rect_closed_getAofY(TXsect* xsect, double y)
+{
+    return y * xsect->wMax;
+}
+
 double rect_closed_getdSdA(TXsect* xsect, double a)
 {
     double alpha, alfMax, r;
@@ -1746,6 +1798,30 @@ double rect_closed_getRofA(TXsect* xsect, double a)
     return a / p;
 }
 
+double rect_closed_getWofY(TXsect* xsect, double y)
+{
+    double yNorm = y / xsect->yFull;
+    if (yNorm == 1.0) return 0.0;                                        //(5.1.013)
+    return xsect->wMax;
+}
+
+double rect_closed_getRofY(TXsect *xsect, double y)
+{
+    return rect_closed_getRofA(xsect, rect_closed_getAofY(xsect, y));
+}
+
+double rect_closed_getAofS(TXsect *xsect, double s)
+{
+    return generic_getAofS(xsect, s);
+}
+
+double rect_closed_getYcrit(TXsect* xsect, double q)
+{
+    double q2g = SQR(q) / GRAVITY;
+    // --- analytical expression for yCritical is
+    //     y = (q2g / w^2)^(1/3) where w = width
+    return pow(q2g / SQR(xsect->wMax), 1./3.);
+}
 
 //=============================================================================
 //  RECT_OPEN fuctions
@@ -1758,6 +1834,10 @@ double rect_open_getSofA(TXsect* xsect, double a)
     return a * pow(r, 2./3.);
 }
 
+double rect_open_getYofA(TXsect* xsect, double a)
+{
+  return a / xsect->wMax;
+}
 
 double rect_open_getdSdA(TXsect* xsect, double a)
 {

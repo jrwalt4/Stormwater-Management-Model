@@ -45,3 +45,6 @@ tests/solver/data/feng*
 
 # Generated files
 *_export.h
+
+#vscode
+.vscode
