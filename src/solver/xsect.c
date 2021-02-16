@@ -180,11 +180,7 @@ static double powerfunc_getAofY(TXsect* xsect, double y);
 static double powerfunc_getRofY(TXsect* xsect, double y);
 static double powerfunc_getWofY(TXsect* xsect, double y);
 
-static double circ_getYofA(TXsect* xsect, double a);
-static double circ_getSofA(TXsect* xsect, double a);
-static double circ_getdSdA(TXsect* xsect, double a);
-static double circ_getAofS(TXsect* xsect, double s);
-static double circ_getAofY(TXsect* xsect, double y);
+DECL_XSECT_VTBL( circ )
 
 static double filled_circ_getYofA(TXsect* xsect, double a);
 static double filled_circ_getAofY(TXsect* xsect, double y);
@@ -249,6 +245,7 @@ int xsect_setParams(TXsect *xsect, int type, double p[], double ucf)
         xsect->sFull = xsect->aFull * pow(xsect->rFull, 2./3.);
         xsect->sMax  = 1.08 * xsect->sFull;
         xsect->ywMax = 0.5 * xsect->yFull;
+        xsect->vtbl = &xsect_vtbl_circ;
         break;
 
     case FORCE_MAIN:
@@ -742,7 +739,6 @@ double xsect_getSofA(TXsect *xsect, double a)
     switch ( xsect->type )
     {
       case FORCE_MAIN:
-      case CIRCULAR:
         return circ_getSofA(xsect, a);
 
       case EGGSHAPED:
@@ -792,7 +788,7 @@ double xsect_getYofA(TXsect *xsect, double a)
     switch ( xsect->type )
     {
       case FORCE_MAIN:
-      case CIRCULAR: return circ_getYofA(xsect, a);
+        return circ_getYofA(xsect, a);
 
       case FILLED_CIRCULAR:
         return filled_circ_getYofA(xsect, a);
@@ -868,7 +864,6 @@ double xsect_getAofY(TXsect *xsect, double y)
     switch ( xsect->type )
     {
       case FORCE_MAIN:
-      case CIRCULAR:
         return xsect->aFull * lookup(yNorm, A_Circ, N_A_Circ);
 
       case FILLED_CIRCULAR:
@@ -944,7 +939,6 @@ double xsect_getWofY(TXsect *xsect, double y)
     switch ( xsect->type )
     {
       case FORCE_MAIN:
-      case CIRCULAR:
         return xsect->wMax * lookup(yNorm, W_Circ, N_W_Circ);
 
       case FILLED_CIRCULAR:
@@ -1021,7 +1015,6 @@ double xsect_getRofY(TXsect *xsect, double y)
     switch ( xsect->type )
     {
       case FORCE_MAIN:
-      case CIRCULAR:
         return xsect->rFull * lookup(yNorm, R_Circ, N_R_Circ);
 
       case FILLED_CIRCULAR:
@@ -1132,7 +1125,7 @@ double xsect_getAofS(TXsect* xsect, double s)
       case DUMMY:     return 0.0;
 
       case FORCE_MAIN:
-      case CIRCULAR:  return circ_getAofS(xsect, s);
+        return circ_getAofS(xsect, s);
 
       case EGGSHAPED:
         return xsect->aFull * invLookup(psi, S_Egg, N_S_Egg);
@@ -1177,7 +1170,6 @@ double xsect_getdSdA(TXsect* xsect, double a)
     switch ( xsect->type )
     {
       case FORCE_MAIN:
-      case CIRCULAR:
         return circ_getdSdA(xsect, a);
 
       case EGGSHAPED:
@@ -2484,6 +2476,31 @@ double circ_getAofY(TXsect* xsect, double y)
     return xsect->aFull * lookup(yNorm, A_Circ, N_A_Circ);
 }
 
+double circ_getWofY(TXsect *xsect, double y)
+{
+    double yNorm = y / xsect->yFull;
+    return xsect->wMax * lookup(yNorm, W_Circ, N_W_Circ);
+}
+
+double circ_getRofY(TXsect* xsect, double y)
+{
+    double yNorm = y / xsect->yFull;
+    return xsect->rFull * lookup(yNorm, R_Circ, N_R_Circ);
+}
+
+double circ_getRofA(TXsect *xsect, double a)
+{
+    double cathy;
+    if( a < TINY ) return 0.0;
+    cathy = circ_getSofA(xsect, a);
+    if ( cathy < TINY ) return 0.0;
+    return pow(cathy/a, 3./2.);
+}
+
+double circ_getYcrit(TXsect* xsect, double q)
+{
+    return generic_getYcrit(xsect, q);
+}
 
 //=============================================================================
 //  FILLED_CIRCULAR functions
